@@ -11,7 +11,7 @@ from qutils.integrators import ode87
 from qutils.plot import plot3dOrbitPredictions,plotOrbitPhasePredictions, plotSolutionErrors,plotPercentSolutionErrors, plotEnergy,plotStatePredictions,newPlotSolutionErrors
 from qutils.orbital import nonDim2Dim6, returnCR3BPIC, readGMATReport, dim2NonDim6, orbitalEnergy
 from qutils.ml.mamba import Mamba, MambaConfig
-from qutils.ml.utils import printModelParmSize, getDevice, Adam_mini
+from qutils.ml.utils import printModelParmSize, getDevice, Adam_mini,rmse
 from qutils.ml.regression import trainModel, create_datasets, genPlotPrediction, LSTMSelfAttentionNetwork
 from qutils.tictoc import timer
 # from nets import Adam_mini
@@ -110,8 +110,6 @@ plotPercentSolutionErrors(output_seq,networkPrediction,t/tPeriod,semimajorAxis,m
 plotEnergy(output_seq,networkPrediction,t/tPeriod,orbitalEnergy,xLabel='Number of Periods (T)',yLabel='Specific Energy')
 # plotDecAccs(decAcc,t,problemDim)
 
-from qutils.mlExtras import rmse
-
 rmseMamba = rmse(output_seq,networkPrediction,percentRMSE=True)
 
 
@@ -121,7 +119,7 @@ print("Average values of each dimension:")
 for i, avg in enumerate(errorAvg, 1):
     print(f"Dimension {i}: {avg}")
 
-printModelParmSize(model)
+mambaParams = printModelParmSize(model)
 torchinfo.summary(model)
 
 if printoutSuperweight:
@@ -185,7 +183,7 @@ print("Average values of each dimension:")
 for i, avg in enumerate(errorAvg, 1):
     print(f"Dimension {i}: {avg}")
 
-printModelParmSize(modelLSTM)
+lstmParams = printModelParmSize(modelLSTM)
 torchinfo.summary(modelLSTM)
 
 
@@ -195,8 +193,11 @@ config = parse_yaml_config("vars.yaml")
 
 dataLoc = config["data-folder"]
 
-
-np.savez(dataLoc+"/2bp.npz", trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM,t=t,tf=t[-1],delT=None)
+t = t / (3600 * 24)
+np.savez(dataLoc+"/2bp.npz", trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
+         ,t=t,tf=t[-1],delT=None,timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=testTime,timeToTestLSTM=testTimeLSTM
+         ,paramsMamba = mambaParams, paramsLSTM = lstmParams,
+         d_units = "[km]", t_units = "[days]")
 
 if plotOn is True:
     plt.show()

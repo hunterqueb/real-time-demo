@@ -120,11 +120,11 @@ optimizer = Adam_mini(model,lr=lr)
 criterion = F.smooth_l1_loss
 
 # train with mamba
-trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
+timeToTrain = trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
 
 # plot results
-trajPredition = plotStatePredictions(model,t,numericResult,train_in,test_in,train_size,test_size,states=['x','y','z'])
+trajPredition, timeToTest = plotStatePredictions(model,t,numericResult,train_in,test_in,train_size,test_size,states=['x','y','z'],outputToc=True)
 
 newPlotSolutionErrors(numericResult,trajPredition,t,states=['x','y','z'],percentError=True)
 newPlotSolutionErrors(numericResult,trajPredition,t,states=['x','y','z'])
@@ -136,7 +136,7 @@ ax.plot3D(trajPredition[:,0], trajPredition[:,1], trajPredition[:,2], 'green',la
 ax.set_title(r'Network Prediction of Lorenz Attractor'+'\n'+r'($\sigma$={:.2f}, $\rho$={:.2f}, $\beta$={:.3f})'.format(parameters[0], parameters[1], parameters[2]))
 ax.legend()
 
-printModelParmSize(model)
+mambaParams = printModelParmSize(model)
 
 
 if printoutSuperweight is True:
@@ -156,8 +156,8 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 
-trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutToc=False)
-networkPredictionLSTM = plotStatePredictions(modelLSTM,t,numericResult,train_in,test_in,train_size,test_size,1,states=('x','y','z'))
+timeToTrainLSTM = trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutToc=True)
+networkPredictionLSTM, timeToTestLSTM = plotStatePredictions(modelLSTM,t,numericResult,train_in,test_in,train_size,test_size,1,states=('x','y','z'),outputToc=True)
 
 newPlotSolutionErrors(numericResult,networkPredictionLSTM,t,states=['x','y','z'],percentError=True)
 newPlotSolutionErrors(numericResult,networkPredictionLSTM,t,states=['x','y','z'])
@@ -168,7 +168,7 @@ unitLabels = ['deg','deg/s','deg','deg/s']
 for i, avg in enumerate(errorAvg, 1):
     print(f"Dimension {i}: {avg} {unitLabels[i-1]}")
 
-printModelParmSize(modelLSTM)
+lstmParams = printModelParmSize(modelLSTM)
 
 
 plt.figure()
@@ -181,7 +181,10 @@ ax.legend()
 
 
 # save predictions and baseline
-np.savez(dataLoc+'/lorenz.npz', trueTraj=numericResult,networkPredictionMamba = trajPredition,networkPredictionLSTM=networkPredictionLSTM,delT=delT,tf=tf )
+np.savez(dataLoc+'/lorenz.npz', trueTraj=numericResult,networkPredictionMamba = trajPredition,networkPredictionLSTM=networkPredictionLSTM,delT=delT,tf=tf,t=t,
+         timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=timeToTest,timeToTestLSTM=timeToTestLSTM,
+         paramsMamba = mambaParams, paramsLSTM = lstmParams,
+         d_units = "[N/A]", t_units = "[sec]")
 
 if plotOn is True:
     plt.show()

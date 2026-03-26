@@ -7,7 +7,7 @@ import torchinfo
 
 from qutils.integrators import ode87
 from qutils.plot import plotCR3BPPhasePredictions,plotOrbitPredictions, plotSolutionErrors,plot3dCR3BPPredictions,plotStatePredictions, plotEnergy
-from qutils.ml.utils import findDecAcc
+from qutils.ml.utils import findDecAcc, rmse
 from qutils.orbital import nonDim2Dim4 as nonDim2Dim6, dim2NonDim4 as dim2NonDim6, returnCR3BPIC, jacobiConstant6
 from qutils.ml.mamba import Mamba, MambaConfig
 from qutils.ml import trainModel, printModelParmSize, getDevice, Adam_mini, genPlotPrediction, create_datasets,LSTMSelfAttentionNetwork
@@ -22,8 +22,7 @@ config = parse_yaml_config("vars.yaml")
 
 dataLoc = config["data-folder"]
 
-DEBUG = True
-plotOn = True
+plotOn = False
 printoutSuperweight = True
 compareLSTM = True
 saveSuperweightToCSV = False
@@ -37,8 +36,6 @@ DU = 389703
 G = 6.67430e-11
 # TU = np.sqrt(DU**3 / (G*(m_1+m_2)))
 TU = 382981
-
-tEnd = 2.990440964/2
 
 IC = np.array((.965692323,0,0,-1.730853537))
 tEnd = 26.51115905/(TU/86400)
@@ -89,8 +86,6 @@ t = np.linspace(t0, tf, nSamples)
 # t , numericResult = ode1412(system,[t0,tf],IC,t)
 t , numericResult = ode87(system,[t0,tf],IC,t,rtol=1e-15,atol=1e-15)
 
-t = t / tEnd
-
 output_seq = numericResult
 
 # hyperparameters
@@ -132,10 +127,10 @@ optimizer = Adam_mini(model,lr=lr)
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
 
-trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
+timeToTrain = trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
 
-networkPrediction = plotStatePredictions(model,t,output_seq,train_in,test_in,train_size,test_size,DU=DU,TU=TU)
+networkPrediction, timeToTest = plotStatePredictions(model,t,output_seq,train_in,test_in,train_size,test_size,DU=DU,TU=TU,outputToc=True)
 output_seq = nonDim2Dim6(output_seq,DU,TU)
 print(output_seq[0,:])
 plotCR3BPPhasePredictions(output_seq,networkPrediction,L=2,DU=DU)
@@ -147,7 +142,6 @@ plot3dCR3BPPredictions(output_seq,networkPrediction,L=2,DU=DU)
 from qutils.plot import newPlotSolutionErrors
 newPlotSolutionErrors(output_seq,networkPrediction,t,timeLabel="Orbit Periods")
 
-from qutils.mlExtras import rmse
 
 rmse(output_seq,networkPrediction)
 
@@ -156,7 +150,7 @@ print("Average values of each dimension:")
 for i, avg in enumerate(errorAvg, 1):
     print(f"Dimension {i}: {avg}")
 
-printModelParmSize(model)
+mambaParams = printModelParmSize(model)
 torchinfo.summary(model)
 print('rk85 on 2 period halo orbit takes 1.199 MB of memory to solve')
 print(numericResult[0,:])
@@ -181,12 +175,12 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
-trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
+timeToTrainLSTM = trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
 
 output_seq = dim2NonDim6(output_seq,DU,TU)
 
-networkPredictionLSTM = plotStatePredictions(modelLSTM,t,output_seq,train_in,test_in,train_size,test_size,DU=DU,TU=TU)
+networkPredictionLSTM, timeToTestLSTM = plotStatePredictions(modelLSTM,t,output_seq,train_in,test_in,train_size,test_size,DU=DU,TU=TU,outputToc=True)
 output_seq = nonDim2Dim6(output_seq,DU,TU)
 
 plot3dCR3BPPredictions(output_seq,networkPrediction,earth=False,networkLabel="Mamba",DU=DU,L=None,moon=False)
@@ -227,12 +221,16 @@ print("Average values of each dimension:")
 for i, avg in enumerate(errorAvg, 1):
     print(f"Dimension {i}: {avg}")
 
-printModelParmSize(modelLSTM)
+lstmParams = printModelParmSize(modelLSTM)
 torchinfo.summary(modelLSTM)
 
-
+t = t * TU / 86400
+print(t[-1])
 # save predictions and baseline
-np.savez(dataLoc+'/CR3BPRetrograde.npz', trueTraj=numericResult,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM,delT=delT,tf=tf )
+np.savez(dataLoc+'/CR3BPRetrograde.npz', trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
+         ,delT=delT,tf=tf,t=t,timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=timeToTest,timeToTestLSTM=timeToTestLSTM
+         ,paramsMamba = mambaParams, paramsLSTM = lstmParams,
+         d_units = "[km]", t_units = "[days]")
 
 
 if plotOn is True:
