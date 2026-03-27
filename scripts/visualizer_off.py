@@ -95,6 +95,10 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
     ax.plot(true_pos[:, 0], true_pos[:, 1], true_pos[:, 2],
             color='k', lw=0.6, alpha=0.2, ls="--", zorder=1)
 
+    if system == "2bp":
+        ax.scatter(0,0,0,
+                color = 'k',label = "Earth")
+
     # Trail lines
     line_true,  = ax.plot([], [], [], color=COLORS["true"],  lw=1.2, alpha=0.9, label="True",  zorder=3)
     line_mamba, = ax.plot([], [], [], color=COLORS["mamba"], lw=1.0, alpha=0.8, label="Mamba", zorder=3)
@@ -159,6 +163,39 @@ def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
     n    = len(true_pos)
     step = max(1, n // n_frames)
     idx  = np.arange(0, n, step)
+
+    if system == "3bp":
+        m_1 = 5.974E24  # Mass of Earth in kg
+        m_2 = 7.348E22  # Mass of Moon in kg
+        mu = m_2 / (m_1 + m_2)
+
+        DU = 389703
+        G = 6.67430e-11
+        TU = 382981
+
+        earthLocation = -mu
+        moonLocation = (1 - mu)
+
+        earthLocation = earthLocation * DU
+        moonLocation = moonLocation * DU
+
+        L1 = [0.8369154703225321* DU,0] 
+        L2 = [1.1556818961296604* DU,0]
+        L3 = [-1.0050626166357435* DU,0]
+        L4 = [0.48784941* DU,0.86602540* DU] 
+        L5 = [0.48784941* DU,-0.86602540* DU]
+
+        print(L1[0])
+
+        ax.scatter(earthLocation, 0, color = 'k',marker = 'o', label='Earth')
+        ax.scatter(moonLocation, 0, color = 'g', marker = 'o', label='Moon')
+
+        ax.scatter(L1[0], L1[1], color = 'grey',marker = '*',alpha = 0.3)
+        ax.scatter(L2[0], L2[1], color = 'grey',marker = '*',alpha = 0.3)
+        ax.scatter(L3[0], L3[1], color = 'grey',marker = '*',alpha = 0.3)
+        ax.scatter(L4[0], L4[1], color = 'grey',marker = '*',alpha = 0.3)
+        ax.scatter(L5[0], L5[1], color = 'grey',marker = '*',alpha = 0.3)
+
 
     # Full true trajectory ghost (static)
     ax.plot(true_pos[:, 0], true_pos[:, 1],

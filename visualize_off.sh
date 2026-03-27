@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+# call with dynamical system to train and generate plot that demonstrates predicted motion of object from network outputs
 
 if [ "$1" = "lorenz" ]; then
     python scripts/generation/mambaLorenzAttractor.py
