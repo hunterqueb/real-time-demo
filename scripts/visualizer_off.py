@@ -118,7 +118,7 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
         for a in artists[:-1]:
             a.set_data([], [])
             if hasattr(a, "set_3d_properties"):
-                a.set_3d_properties([])
+                a.set_3d_properties(np.array([]))
         return artists
 
     def update(frame_idx):
