@@ -130,7 +130,7 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
             line.set_3d_properties(pos[lo:i+1, 2])
         for dot, pos in [(dot_true, true_pos), (dot_mamba, mamba_pos), (dot_lstm, lstm_pos)]:
             dot.set_data([pos[i, 0]], [pos[i, 1]])
-            dot.set_3d_properties([pos[i, 2]])
+            dot.set_3d_properties(np.array([pos[i, 2]]))
 
         prog_bar.set_width(i / (n - 1))
         title.set_text(f"{system.upper()}   t = {t[i]:.3f} "+str(t_units))
