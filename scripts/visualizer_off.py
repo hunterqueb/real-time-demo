@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+LOW_DATA_PAD = 0.002  # Minimum fraction of data to show as "training" in progress bar, for visibility in sparse-data cases
 
 COLORS = {
     "true":  "#2ecc71",
@@ -55,27 +56,34 @@ def extract(data, system):
     t     = data["t"].ravel()
     d_units = data["d_units"]
     t_units = data["t_units"]
+    train_size = int(data["train_size"]) if "train_size" in data.files else None
 
     print(type(str(d_units)))
 
     if system == "2bp":
         # state = [x, y, z, vx, vy, vz] — plot position only
-        return true[:, :3], mamba[:, :3], lstm[:, :3], t, d_units, t_units, "3d"
+        return true[:, :3], mamba[:, :3], lstm[:, :3], t, d_units, t_units, "3d", train_size
     elif system == "3bp":
         # state = [x, y, xdot, ydot] — planar orbit
-        return true[:, :2], mamba[:, :2], lstm[:, :2], t, d_units, t_units, "2d"
+        return true[:, :2], mamba[:, :2], lstm[:, :2], t, d_units, t_units, "2d", train_size
     else:  # lorenz: already (N, 3)
-        return true, mamba, lstm, t, d_units, t_units, "3d"
+        return true, mamba, lstm, t, d_units, t_units, "3d", train_size
 
 
 
-def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interval, save,d_units,t_units):
+def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interval, save, d_units, t_units, train_size=None):
     fig = plt.figure(figsize=(10, 8))
     ax      = fig.add_axes([0.05, 0.08, 0.90, 0.88], projection="3d")
     prog_ax = fig.add_axes([0.05, 0.02, 0.90, 0.03])
     prog_ax.set_xlim(0, 1); prog_ax.set_ylim(0, 1)
     prog_ax.set_xticks([]); prog_ax.set_yticks([])
-    prog_bar = prog_ax.barh(0.5, 0, height=1, color=COLORS["true"], align="center")[0]
+    train_frac = (train_size / (len(true_pos) - 1)) if train_size is not None else None
+    # For Lorenz the training region is tiny (~0.04%); pad it so it's visible
+    display_train_frac = max(train_frac, LOW_DATA_PAD) if (train_frac is not None and system == "lorenz") else train_frac
+    # Two-segment progress bar: red for training, green for prediction
+    prog_bar_train = prog_ax.barh(0.5, 0, height=1, color="#e74c3c", align="center")[0]
+    prog_bar_pred  = prog_ax.barh(0.5, 0, left=display_train_frac if display_train_frac is not None else 0,
+                                  height=1, color=COLORS["true"], align="center")[0]
 
     # Fixed limits from all trajectories
     all_pos = np.concatenate([true_pos, mamba_pos, lstm_pos], axis=0)
@@ -132,7 +140,12 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
             dot.set_data(np.array([pos[i, 0]]), np.array([pos[i, 1]]))
             dot.set_3d_properties(np.array([pos[i, 2]]))
 
-        prog_bar.set_width(i / (n - 1))
+        frac = i / (n - 1)
+        if train_frac is not None:
+            prog_bar_train.set_width(min(frac, display_train_frac))
+            prog_bar_pred.set_width(max(0.0, frac - display_train_frac))
+        else:
+            prog_bar_train.set_width(frac)
         title.set_text(f"{system.upper()}   t = {t[i]:.3f} "+str(t_units))
         return artists
 
@@ -145,13 +158,18 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
 
 
 
-def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interval, save,d_units,t_units):
+def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interval, save, d_units, t_units, train_size=None):
     fig = plt.figure(figsize=(9, 8))
     ax      = fig.add_axes([0.10, 0.08, 0.87, 0.88])
     prog_ax = fig.add_axes([0.10, 0.02, 0.87, 0.03])
     prog_ax.set_xlim(0, 1); prog_ax.set_ylim(0, 1)
     prog_ax.set_xticks([]); prog_ax.set_yticks([])
-    prog_bar = prog_ax.barh(0.5, 0, height=1, color=COLORS["true"], align="center")[0]
+    train_frac = (train_size / (len(true_pos) - 1)) if train_size is not None else None
+    display_train_frac = max(train_frac, LOW_DATA_PAD) if (train_frac is not None and system == "lorenz") else train_frac
+    # Two-segment progress bar: red for training, green for prediction
+    prog_bar_train = prog_ax.barh(0.5, 0, height=1, color="#e74c3c", align="center")[0]
+    prog_bar_pred  = prog_ax.barh(0.5, 0, left=display_train_frac if display_train_frac is not None else 0,
+                                  height=1, color=COLORS["true"], align="center")[0]
 
     # Limits from true trajectory only — network predictions can diverge wildly
     pad = 0.15
@@ -230,7 +248,12 @@ def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
         for dot, pos in [(dot_true, true_pos), (dot_mamba, mamba_pos), (dot_lstm, lstm_pos)]:
             dot.set_data([pos[i, 0]], [pos[i, 1]])
 
-        prog_bar.set_width(i / (n - 1))
+        frac = i / (n - 1)
+        if train_frac is not None:
+            prog_bar_train.set_width(min(frac, display_train_frac))
+            prog_bar_pred.set_width(max(0.0, frac - display_train_frac))
+        else:
+            prog_bar_train.set_width(frac)
         title.set_text(f"{system.upper()}   t = {t[i]:.4f} "+str(t_units))
         return artists
 
@@ -321,13 +344,13 @@ def _show_or_save_plot(ani, save, system):
 def main():
     args = parse_args()
     data = load_data(args.system)
-    true_pos, mamba_pos, lstm_pos, t, d_units, t_units ,plot_type = extract(data, args.system)
+    true_pos, mamba_pos, lstm_pos, t, d_units, t_units, plot_type, train_size = extract(data, args.system)
     print(d_units)
     kwargs = dict(
         true_pos=true_pos, mamba_pos=mamba_pos, lstm_pos=lstm_pos, t=t,
         system=args.system, trail=args.trail,
         n_frames=args.frames, interval=args.interval, save=args.save,
-        d_units = d_units, t_units = t_units,
+        d_units=d_units, t_units=t_units, train_size=train_size,
     )
 
     plot_timing(data, args.system,args.save)

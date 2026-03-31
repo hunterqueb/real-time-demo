@@ -197,7 +197,9 @@ t = t / (3600 * 24)
 np.savez(dataLoc+"/2bp.npz", trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
          ,t=t,tf=t[-1],delT=None,timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=testTime,timeToTestLSTM=testTimeLSTM
          ,paramsMamba = mambaParams, paramsLSTM = lstmParams,
-         d_units = "[km]", t_units = "[days]")
+         d_units = "[km]", t_units = "[days]",
+        train_size = train_size, test_size = test_size,)
+
 
 if plotOn is True:
     plt.show()

@@ -184,7 +184,8 @@ ax.legend()
 np.savez(dataLoc+'/lorenz.npz', trueTraj=numericResult,networkPredictionMamba = trajPredition,networkPredictionLSTM=networkPredictionLSTM,delT=delT,tf=tf,t=t,
          timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=timeToTest,timeToTestLSTM=timeToTestLSTM,
          paramsMamba = mambaParams, paramsLSTM = lstmParams,
-         d_units = "[N/A]", t_units = "[sec]")
+         d_units = "[N/A]", t_units = "[sec]",
+         train_size = train_size, test_size = test_size,)
 
 if plotOn is True:
     plt.show()
