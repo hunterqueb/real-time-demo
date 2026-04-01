@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import os
 
 LOW_DATA_PAD = 0.002  # Minimum fraction of data to show as "training" in progress bar, for visibility in sparse-data cases
 
@@ -15,7 +16,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--system", type=str, default="lorenz",
-        help="system to visualize: lorenz | 2bp | 3bp",
+        help="system to visualize: name of the data file in scripts/data/ without the .npz extension, e.g. 'lorenz', '2bp', etc. (default: 'lorenz')",
     )
     parser.add_argument(
         "--trail", type=int, default=300,
@@ -38,14 +39,11 @@ def parse_args():
 
 
 def load_data(system):
-    paths = {
-        "lorenz": "scripts/data/lorenz.npz",
-        "2bp":    "scripts/data/2bp.npz",
-        "3bp":    "scripts/data/CR3BPRetrograde.npz",
-    }
-    if system not in paths:
-        raise ValueError(f"Unknown system '{system}'. Choose from: lorenz, 2bp, 3bp")
-    return np.load(paths[system], allow_pickle=True)
+    path = f"scripts/data/{system}.npz"
+    try:
+        return np.load(path, allow_pickle=True)
+    except FileNotFoundError:
+        raise ValueError(f"No data file found for system '{system}' (looked for {path})")
 
 
 def extract(data, system):
@@ -63,7 +61,7 @@ def extract(data, system):
     if system == "2bp":
         # state = [x, y, z, vx, vy, vz] — plot position only
         return true[:, :3], mamba[:, :3], lstm[:, :3], t, d_units, t_units, "3d", train_size
-    elif system == "3bp":
+    elif system == "CR3BP_Retrograde" or system == "2bp_low":
         # state = [x, y, xdot, ydot] — planar orbit
         return true[:, :2], mamba[:, :2], lstm[:, :2], t, d_units, t_units, "2d", train_size
     else:  # lorenz: already (N, 3)
@@ -79,7 +77,7 @@ def animate_3d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
     prog_ax.set_xticks([]); prog_ax.set_yticks([])
     train_frac = (train_size / (len(true_pos) - 1)) if train_size is not None else None
     # For Lorenz the training region is tiny (~0.04%); pad it so it's visible
-    display_train_frac = max(train_frac, LOW_DATA_PAD) if (train_frac is not None and system == "lorenz") else train_frac
+    display_train_frac = max(train_frac, LOW_DATA_PAD) 
     # Two-segment progress bar: red for training, green for prediction
     prog_bar_train = prog_ax.barh(0.5, 0, height=1, color="#e74c3c", align="center")[0]
     prog_bar_pred  = prog_ax.barh(0.5, 0, left=display_train_frac if display_train_frac is not None else 0,
@@ -165,7 +163,7 @@ def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
     prog_ax.set_xlim(0, 1); prog_ax.set_ylim(0, 1)
     prog_ax.set_xticks([]); prog_ax.set_yticks([])
     train_frac = (train_size / (len(true_pos) - 1)) if train_size is not None else None
-    display_train_frac = max(train_frac, LOW_DATA_PAD) if (train_frac is not None and system == "lorenz") else train_frac
+    display_train_frac = max(train_frac, LOW_DATA_PAD) 
     # Two-segment progress bar: red for training, green for prediction
     prog_bar_train = prog_ax.barh(0.5, 0, height=1, color="#e74c3c", align="center")[0]
     prog_bar_pred  = prog_ax.barh(0.5, 0, left=display_train_frac if display_train_frac is not None else 0,
@@ -214,6 +212,8 @@ def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
         ax.scatter(L4[0], L4[1], color = 'grey',marker = '*',alpha = 0.3)
         ax.scatter(L5[0], L5[1], color = 'grey',marker = '*',alpha = 0.3)
 
+    if system == "2bp_low":
+        ax.scatter(0, 0, color='k', marker='o', label='Earth')
 
     # Full true trajectory ghost (static)
     ax.plot(true_pos[:, 0], true_pos[:, 1],
@@ -330,11 +330,15 @@ def plot_timing(data, system,save):
     plt.tight_layout()
 
     if save:
+        # make sure directory exists
+        os.makedirs("plots/"+str(system), exist_ok=True)
         plt.savefig("plots/"+str(system)+"/parameters.png")
 
 def _show_or_save_plot(ani, save, system):
     plt.tight_layout()
     if save:
+        # make sure directory exists
+        os.makedirs("plots/"+str(system), exist_ok=True)
         ani.save("plots/"+str(system)+"/phase_space.mp4", writer="ffmpeg", fps=30, dpi=150)
         print(f"Saved → {save}")
     else:

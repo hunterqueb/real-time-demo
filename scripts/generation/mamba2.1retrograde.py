@@ -227,7 +227,7 @@ torchinfo.summary(modelLSTM)
 t = t * TU / 86400
 print(t[-1])
 # save predictions and baseline
-np.savez(dataLoc+'/CR3BPRetrograde.npz', trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
+np.savez(dataLoc+'/CR3BP_Retrograde.npz', trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
          ,delT=delT,tf=tf,t=t,timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=timeToTest,timeToTestLSTM=timeToTestLSTM
          ,paramsMamba = mambaParams, paramsLSTM = lstmParams,
          d_units = "[km]", t_units = "[days]",
