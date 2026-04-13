@@ -180,7 +180,7 @@ def animate_2d(true_pos, mamba_pos, lstm_pos, t, system, trail, n_frames, interv
     step = max(1, n // n_frames)
     idx  = np.arange(0, n, step)
 
-    if system == "3bp":
+    if system == "CR3BP_Retrograde":
         m_1 = 5.974E24  # Mass of Earth in kg
         m_2 = 7.348E22  # Mass of Moon in kg
         mu = m_2 / (m_1 + m_2)
