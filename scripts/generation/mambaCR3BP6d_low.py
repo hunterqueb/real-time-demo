@@ -16,6 +16,22 @@ from qutils.tictoc import timer
 # from nets import Adam_mini
 
 # from memory_profiler import profile
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
+
+
+title = r'''
+ _____ ______ _________________   _   _       _       
+/  __ \| ___ \____ | ___ \ ___ \ | | | |     | |      
+| /  \/| |_/ /   / / |_/ / |_/ / | |_| | __ _| | ___  
+| |    |    /    \ \ ___ \  __/  |  _  |/ _` | |/ _ \ 
+| \__/\| |\ \.___/ / |_/ / |     | | | | (_| | | (_) |
+ \____/\_| \_\____/\____/\_|     \_| |_/\__,_|_|\___/ 
+                                                      
+                                                      '''
+print(title)
+
+
 
 DEBUG = True
 plotOn = False
@@ -112,7 +128,7 @@ t = t / tEnd
 output_seq = numericResult
 
 # hyperparameters
-n_epochs = 50
+n_epochs = 10
 # lr = 5*(10**-5)
 # lr = 0.85
 lr = 0.8
@@ -131,8 +147,15 @@ train_size = 2
 test_size = len(output_seq) - train_size
 
 train_in,train_out,test_in,test_out = create_datasets(output_seq,1,train_size,device)
+print("=================================")
+print("Total data points: ", len(output_seq))
+print("Training data points: ", train_size)
+print("Testing data points: ", test_size)
+print("Training inputs:")
 print(train_in)
+print("Training outputs:")
 print(train_out)
+print("=================================")
 
 loader = data.DataLoader(data.TensorDataset(train_in, train_out), shuffle=True, batch_size=8)
 
@@ -153,6 +176,11 @@ optimizer = Adam_mini(model,lr=lr)
 
 criterion = F.smooth_l1_loss
 criterion = torch.nn.HuberLoss()
+
+print("\n=================================")
+print("Training Mamba on CR3BP Halo Orbit")
+print("=================================\n")
+
 
 trainTime = timer()
 for epoch in range(n_epochs):
@@ -187,10 +215,10 @@ DU = 389703
 G = 6.67430e-11
 # TU = np.sqrt(DU**3 / (G*(m_1+m_2)))
 TU = 382981
-print(DU)
-print(TU)
-print(tf)
-print(TU*tf)
+# print(DU)
+# print(TU)
+# print(tf)
+# print(TU*tf)
 
 
 networkPrediction,timeToTest = plotStatePredictions(model,t,output_seq,train_in,test_in,train_size,test_size,DU=DU,TU=TU,timeLabel='Periods',outputToc=True)
@@ -215,6 +243,11 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+
+print("\n=================================")
+print("Training LSTM on CR3BP Halo Orbit")
+print("=================================\n")
+
 trainTime = timer()
 for epoch in range(n_epochs):
 
@@ -258,7 +291,7 @@ plt.legend()
 
 # plotOrbitPredictions(output_seq,networkPrediction,t=t)
 from qutils.plot import newPlotSolutionErrors
-newPlotSolutionErrors(output_seq,networkPrediction,t,timeLabel='Periods',percentError=True,states = ['x', 'y', 'z', '$\dot{x}$', '$\dot{y}$', '$\dot{z}$'])
+newPlotSolutionErrors(output_seq,networkPrediction,t,timeLabel='Periods',percentError=True,states = ['x', 'y', 'z', r'$\dot{x}$', r'$\dot{y}$', r'$\dot{z}$'])
 # plotDecAccs(decAcc,t,problemDim)
 errorAvg = np.nanmean(abs(networkPrediction-output_seq), axis=0)
 print("Average values of each dimension:")

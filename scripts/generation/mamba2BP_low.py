@@ -27,6 +27,27 @@ from qutils.helper import parse_yaml_config
 
 from qutils.ml.mamba import Mamba, MambaConfig
 
+title = r'''
+______ _                        
+| ___ \ |                       
+| |_/ / | __ _ _ __   __ _ _ __ 
+|  __/| |/ _` | '_ \ / _` | '__|
+| |   | | (_| | | | | (_| | |   
+\_|   |_|\__,_|_| |_|\__,_|_|   '''
+
+subtitle = r'''
+ _____  ______           _        ______          _     _                
+/ __  \ | ___ \         | |       | ___ \        | |   | |               
+`' / /' | |_/ / ___   __| |_   _  | |_/ / __ ___ | |__ | | ___ _ __ ___  
+  / /   | ___ \/ _ \ / _` | | | | |  __/ '__/ _ \| '_ \| |/ _ \ '_ ` _ \ 
+./ /___ | |_/ / (_) | (_| | |_| | | |  | | | (_) | |_) | |  __/ | | | | |
+\_____/ \____/ \___/ \__,_|\__, | \_|  |_|  \___/|_.__/|_|\___|_| |_| |_|
+                            __/ |                                        
+                           |___/                                         '''
+
+print(title)
+print(subtitle)
+
 
 
 # seed any random functions
@@ -95,13 +116,13 @@ a = p/(1-e**2)
 rHEO = np.array([(p/(1+e)),0])
 vHEO = np.array([0,np.sqrt(muR*((2/rHEO[0])-(1/a)))])
 THEO = 2*np.pi*np.sqrt(a**3/muR)
-print(THEO)
+# print(THEO)
 mu = 1
 r = rHEO / DU
 v = vHEO * TU / DU
 T = THEO / TU
-print(TU)
-print(T)
+# print(TU)
+# print(T)
 
 J2 = 1.08263e-3
 
@@ -172,13 +193,24 @@ train_size = 2
 test_size = len(pertNR) - train_size
 
 train_in,train_out,test_in,test_out = create_datasets(pertNR,1,train_size,device)
+print("=================================")
+print("Total data points: ", len(pertNR))
+print("Training data points: ", train_size)
+print("Testing data points: ", test_size)
+print("Training inputs:")
 print(train_in)
+print("Training outputs:")
 print(train_out)
+print("=================================")
 
 loader = data.DataLoader(data.TensorDataset(train_in, train_out), shuffle=True, batch_size=8)
 
 
 optimizer = torch.optim.Adam(model.parameters(),lr=lr)
+
+print("\n=================================")
+print("Training Mamba on 2BP with J2 and Drag")
+print("=================================\n")
 
 trainTime = timer()
 for epoch in range(n_epochs):
@@ -223,6 +255,10 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+print("\n=================================")
+print("Training LSTM on 2BP with J2 and Drag")
+print("=================================\n")
+
 trainTime = timer()
 for epoch in range(n_epochs):
 
@@ -264,14 +300,14 @@ plotOrbitPhasePredictions(pertNR,networkPredictionLSTM)
 plt.grid()
 plt.tight_layout()
 # plotSolutionErrors(pertNR,networkPrediction,t)
-newPlotSolutionErrors(pertNR,networkPrediction,t,timeLabel='Periods',percentError=True,states = ['x', 'y', '$\dot{x}$', '$\dot{y}$'])
+newPlotSolutionErrors(pertNR,networkPrediction,t,timeLabel='Periods',percentError=True,states = ['x', 'y', r'$\dot{x}$', r'$\dot{y}$'])
 
 
 err = nonDim2Dim4(err)
 lstmParams = printModelParmSize(modelLSTM)
 torchinfo.summary(modelLSTM)
-print(numericResult[0,:])
-print(numericResult[1,:])
+# print(numericResult[0,:])
+# print(numericResult[1,:])
 errorAvg = np.nanmean(abs(networkPrediction-pertNR), axis=0)
 print("Average values of each dimension:")
 for i, avg in enumerate(errorAvg, 1):

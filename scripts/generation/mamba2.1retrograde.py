@@ -18,12 +18,37 @@ from qutils.tictoc import timer
 from qutils.ml.superweight import printoutMaxLayerWeight,getSuperWeight,plotSuperWeight,findMambaSuperActivation, plotSuperActivation
 
 from qutils.helper import parse_yaml_config
+
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
+
+title = r'''
+ _____ ______ _________________ 
+/  __ \| ___ \____ | ___ \ ___ \
+| /  \/| |_/ /   / / |_/ / |_/ /
+| |    |    /    \ \ ___ \  __/ 
+| \__/\| |\ \.___/ / |_/ / |    
+ \____/\_| \_\____/\____/\_|    '''
+
+subtitle = r'''
+ _____     __   ______     _                                 _      
+/ __  \ _ /  |  | ___ \   | |                               | |     
+`' / /'(_)`| |  | |_/ /___| |_ _ __ ___   __ _ _ __ __ _  __| | ___ 
+  / /      | |  |    // _ \ __| '__/ _ \ / _` | '__/ _` |/ _` |/ _ \
+./ /___ _ _| |_ | |\ \  __/ |_| | | (_) | (_| | | | (_| | (_| |  __/
+\_____/(_)\___/ \_| \_\___|\__|_|  \___/ \__, |_|  \__,_|\__,_|\___|
+                                          __/ |                     
+                                         |___/                      '''
+
+print(title)
+print(subtitle)
+
 config = parse_yaml_config("vars.yaml")
 
 dataLoc = config["data-folder"]
 
 plotOn = False
-printoutSuperweight = True
+printoutSuperweight = False
 compareLSTM = True
 saveSuperweightToCSV = False
 
@@ -44,8 +69,6 @@ tEnd = 26.51115905/(TU/86400)
 p_motion_knowledge = 0.5
 
 
-print(IC)
-print(tEnd)
 def system(t, Y,mu=mu):
     """Solve the CR3BP in nondimensional coordinates.
     
@@ -108,6 +131,15 @@ train_size = int(len(output_seq) * p_motion_knowledge)
 test_size = len(output_seq) - train_size
 
 train_in,train_out,test_in,test_out = create_datasets(output_seq,1,train_size,device)
+print("=================================")
+print("Total data points: ", len(output_seq))
+print("Training data points: ", train_size)
+print("Testing data points: ", test_size)
+print("Training inputs:")
+print(train_in)
+print("Training outputs:")
+print(train_out)
+print("=================================")
 
 # initilizing the model, criterion, and optimizer for the data
 config = MambaConfig(d_model=problemDim, n_layers=num_layers,d_conv=16)
@@ -126,6 +158,9 @@ optimizer = Adam_mini(model,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+print("\n=================================")
+print("Training Mamba on CR3BP 2:1 Retrograde Orbit")
+print("=================================\n")
 
 timeToTrain = trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
@@ -152,9 +187,9 @@ for i, avg in enumerate(errorAvg, 1):
 
 mambaParams = printModelParmSize(model)
 torchinfo.summary(model)
-print('rk85 on 2 period halo orbit takes 1.199 MB of memory to solve')
-print(numericResult[0,:])
-print(numericResult[1,:])
+# print('rk85 on 2 period halo orbit takes 1.199 MB of memory to solve')
+# print(numericResult[0,:])
+# print(numericResult[1,:])
 
 if printoutSuperweight is True:
     printoutMaxLayerWeight(model)
@@ -175,6 +210,11 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+
+print("\n=================================")
+print("Training LSTM on CR3BP 2:1 Retrograde Orbit")
+print("=================================\n")
+
 timeToTrainLSTM = trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
 
@@ -225,7 +265,6 @@ lstmParams = printModelParmSize(modelLSTM)
 torchinfo.summary(modelLSTM)
 
 t = t * TU / 86400
-print(t[-1])
 # save predictions and baseline
 np.savez(dataLoc+'/CR3BP_Retrograde.npz', trueTraj=output_seq,networkPredictionMamba = networkPrediction,networkPredictionLSTM=networkPredictionLSTM
          ,delT=delT,tf=tf,t=t,timeToTrainMamba=timeToTrain,timeToTrainLSTM=timeToTrainLSTM,timeToTestMamba=timeToTest,timeToTestLSTM=timeToTestLSTM

@@ -18,9 +18,35 @@ from qutils.tictoc import timer
 
 # from memory_profiler import profile
 from qutils.ml.superweight import printoutMaxLayerWeight,getSuperWeight,plotSuperWeight, findMambaSuperActivation, plotSuperActivation
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
+
+title = r'''
+ _____ ___  ___  ___ _____ 
+|  __ \|  \/  | / _ \_   _|
+| |  \/| .  . |/ /_\ \| |  
+| | __ | |\/| ||  _  || |  
+| |_\ \| |  | || | | || |  
+ \____/\_|  |_/\_| |_/\_/  '''
+
+subtitle = r'''
+ _____  ______           _        ______          _     _                
+/ __  \ | ___ \         | |       | ___ \        | |   | |               
+`' / /' | |_/ / ___   __| |_   _  | |_/ / __ ___ | |__ | | ___ _ __ ___  
+  / /   | ___ \/ _ \ / _` | | | | |  __/ '__/ _ \| '_ \| |/ _ \ '_ ` _ \ 
+./ /___ | |_/ / (_) | (_| | |_| | | |  | | | (_) | |_) | |  __/ | | | | |
+\_____/ \____/ \___/ \__,_|\__, | \_|  |_|  \___/|_.__/|_|\___|_| |_| |_|
+                            __/ |                                        
+                           |___/                                         '''
+
+print(title)
+print(subtitle)
+
+
+
 
 plotOn = False
-printoutSuperweight = True
+printoutSuperweight = False
 compareLSTM = False
 percentRMSE = True
 
@@ -43,7 +69,7 @@ DU = 6378.1 # radius of earth in km
 TU = ((DU)**3 / muR)**0.5
 
 output_seq = dim2NonDim6(output_seq,DU,TU)
-print(output_seq[0,:])
+# print(output_seq[0,:])
 # hyperparameters
 n_epochs = 5
 # lr = 5*(10**-5)
@@ -63,9 +89,17 @@ p_motion_knowledge = 0.5
 train_size = int(len(output_seq) * p_motion_knowledge)
 # train_size = 2
 test_size = len(output_seq) - train_size
-print(train_size)
-print(test_size)
 train_in,train_out,test_in,test_out = create_datasets(output_seq,1,train_size,device)
+print("=================================")
+print("Total data points: ", len(output_seq))
+print("Training data points: ", train_size)
+print("Testing data points: ", test_size)
+print("Training inputs:")
+print(train_in)
+print("Training outputs:")
+print(train_out)
+print("=================================")
+
 
 # initilizing the model, criterion, and optimizer for the data
 config = MambaConfig(d_model=problemDim, n_layers=num_layers,d_conv=32)
@@ -84,6 +118,9 @@ optimizer = Adam_mini(model,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+print("\n=================================")
+print("Training Mamba on 2BP Generated Using GMAT Propagator")
+print("=================================\n")
 
 timeToTrain = trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
@@ -142,6 +179,10 @@ optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
 # criterion = torch.nn.HuberLoss()
+print("\n=================================")
+print("Training LSTM on 2BP Generated Using GMAT Propagator")
+print("=================================\n")
+
 timeToTrainLSTM = trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
 
 output_seq = dim2NonDim6(output_seq,DU,TU)
@@ -161,8 +202,8 @@ plotOrbitPhasePredictions(output_seq,networkPredictionLSTM,plane='yz')
 
 plotSolutionErrors(output_seq,networkPredictionLSTM,t/tPeriod)
 
-fig, axes = newPlotSolutionErrors(output_seq,networkPredictionLSTM,t,timeLabel="Orbit Periods",percentError=True,states = ['x', 'y', 'z', '$\dot{x}$', '$\dot{y}$', '$\dot{z}$'])
-newPlotSolutionErrors(output_seq,networkPrediction,t,timeLabel="Orbit Periods",newPlot=axes,networkLabels=["LSTM","Mamba"],percentError=True,states = ['x', 'y', 'z', '$\dot{x}$', '$\dot{y}$', '$\dot{z}$'])
+fig, axes = newPlotSolutionErrors(output_seq,networkPredictionLSTM,t,timeLabel="Orbit Periods",percentError=True,states = ['x', 'y', 'z', r'$\dot{x}$', r'$\dot{y}$', r'$\dot{z}$'])
+newPlotSolutionErrors(output_seq,networkPrediction,t,timeLabel="Orbit Periods",newPlot=axes,networkLabels=["LSTM","Mamba"],percentError=True,states = ['x', 'y', 'z', r'$\dot{x}$', r'$\dot{y}$', r'$\dot{z}$'])
 mambaLine = mlines.Line2D([], [], color='b', label='LSTM')
 LSTMLine = mlines.Line2D([], [], color='orange', label='Mamba')
 fig.legend(handles=[mambaLine,LSTMLine])

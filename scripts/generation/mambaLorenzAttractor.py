@@ -17,6 +17,21 @@ from qutils.helper import parse_yaml_config
 #import for superweight identification
 from qutils.ml.superweight import printoutMaxLayerWeight,getSuperWeight,plotSuperWeight
 
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="pkg_resources")
+
+title = r'''
+ _                                 ___  _   _                  _              
+| |                               / _ \| | | |                | |             
+| |     ___  _ __ ___ _ __  ____ / /_\ \ |_| |_ _ __ __ _  ___| |_ ___  _ __  
+| |    / _ \| '__/ _ \ '_ \|_  / |  _  | __| __| '__/ _` |/ __| __/ _ \| '__| 
+| |___| (_) | | |  __/ | | |/ /  | | | | |_| |_| | | (_| | (__| || (_) | |    
+\_____/\___/|_|  \___|_| |_/___| \_| |_/\__|\__|_|  \__,_|\___|\__\___/|_|                                                                  
+'''
+
+print(title)
+
+
 # from nets import Adam_mini
 
 # from memory_profiler import profile
@@ -28,7 +43,7 @@ dataLoc = config["data-folder"]
 plotOn = False
 randomIC = False
 periodic = False
-printoutSuperweight = True
+printoutSuperweight = False
 compareLSTM = True
 
 problemDim = 3
@@ -107,8 +122,15 @@ train_size = 2
 test_size = len(t) - train_size
 
 train_in,train_out,test_in,test_out = create_datasets(numericResult,1,train_size,device)
+print("=================================")
+print("Total data points: ", len(numericResult))
+print("Training data points: ", train_size)
+print("Testing data points: ", test_size)
+print("Training inputs:")
 print(train_in)
+print("Training outputs:")
 print(train_out)
+print("=================================")
 loader = data.DataLoader(data.TensorDataset(train_in, train_out), shuffle=True, batch_size=8)
 
 config = MambaConfig(d_model=problemDim, n_layers=num_layers)
@@ -118,6 +140,10 @@ model = Mamba(config).to(device).double()
 
 optimizer = Adam_mini(model,lr=lr)
 criterion = F.smooth_l1_loss
+
+print("\n=================================")
+print("Training Mamba on Lorenz Attractor")
+print("=================================\n")
 
 # train with mamba
 timeToTrain = trainModel(model,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutAcc = True,printOutToc = True)
@@ -155,6 +181,10 @@ modelLSTM = returnModel('lstm')
 optimizer = Adam_mini(modelLSTM,lr=lr)
 
 criterion = F.smooth_l1_loss
+
+print("\n=================================")
+print("Training LSTM on Lorenz Attractor")
+print("=================================\n")
 
 timeToTrainLSTM = trainModel(modelLSTM,n_epochs,[train_in,train_out,test_in,test_out],criterion,optimizer,printOutToc=True)
 networkPredictionLSTM, timeToTestLSTM = plotStatePredictions(modelLSTM,t,numericResult,train_in,test_in,train_size,test_size,1,states=('x','y','z'),outputToc=True)
